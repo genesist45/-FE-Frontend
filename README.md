@@ -1,7 +1,7 @@
 ⚛️ React + TypeScript + Vite
 This template provides a minimal setup to get React working in Vite with Hot Module Replacement (HMR) and some useful ESLint rules.
 
-Github Repository Frontend : https://github.com/ClarkGenesis/Frontend-fe-
+Github Repository Frontend : https://github.com/ClarkGenesis/Frontend-premio
 
 🚀 Getting Started
 Currently, two official plugins are available:
@@ -28,6 +28,14 @@ npm run dev
 🔹 Access the Frontend
 Your terminal will display a local development link, usually like:
 http://localhost:5173
+
+Example Admin Account:
+Email : admin@example.com
+Password : admin123
+
+Example User Account:
+Email : user@example.com
+Password : user12345
 
 👉 Hold Ctrl and click the link, or copy and paste it into your browser to open the frontend app.
 

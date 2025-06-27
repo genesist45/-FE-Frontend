@@ -5,77 +5,77 @@
 // Backend base URL for API calls
 const backendBaseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-export type ImageFileType = 'signatures' | 'sketches' | 'motorcycles';
+export type ImageFileType = 'signatures' | 'sketches' | 'motorcycles' | 'motorcycle_images' | 'specification_images';
 
 /**
- * Ensures a URL is absolute (full URL) rather than relative
- * Handles various formats of URLs returned from the backend
- * 
- * @param urlField - The URL field value from API response
- * @param pathField - The path field value from API response (fallback)
- * @param fileType - The type of file (signatures or sketches)
- * @returns A properly formatted absolute URL
+ * Clean and normalize a path by removing leading/trailing slashes and converting backslashes
  */
-export const ensureAbsoluteUrl = (
-  urlField: string | null,
-  pathField: string | null,
-  fileType: ImageFileType
-): string | null => {
-  // Return null for null inputs
-  if (!urlField && !pathField) {
-    return null;
-  }
-  
-  // Try to use urlField first, fallback to pathField
-  const fieldToUse = urlField || pathField;
-  if (!fieldToUse) return null;
-  
-  // If it's already an absolute URL, return it
-  if (fieldToUse.startsWith('http')) {
-    return fieldToUse;
-  }
-  
-  // Handle various formats of relative URLs
-  if (fieldToUse.startsWith('/storage/')) {
-    return `${backendBaseUrl}${fieldToUse}`;
-  }
-  
-  if (fieldToUse.startsWith('storage/')) {
-    return `${backendBaseUrl}/${fieldToUse}`;
-  }
-  
-  if (fieldToUse.startsWith(`${fileType}/`)) {
-    return `${backendBaseUrl}/storage/${fieldToUse}`;
-  }
-  
-  // For just a filename, construct the proper path
-  if (!fieldToUse.includes('/')) {
-    return `${backendBaseUrl}/storage/${fileType}/${fieldToUse}`;
-  }
-  
-  // Default: assume it's a path relative to the storage directory
-  return `${backendBaseUrl}/storage/${fieldToUse}`;
+const normalizePath = (path: string): string => {
+  return path
+    .replace(/\\/g, '/') // Convert Windows backslashes to forward slashes
+    .replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
+    .replace(/\/+/g, '/'); // Replace multiple slashes with single slash
 };
 
 /**
- * Convert a storage URL to a direct-access URL for cases where
- * the symlink isn't working properly
+ * Extract the relative path from a full URL or path string
  */
-export const getDirectAccessUrl = (url: string | null): string | null => {
-  if (!url) return null;
+const extractRelativePath = (url: string): string => {
+  // If it's a full URL, extract the path portion
+  if (url.startsWith('http')) {
+    try {
+      const urlObj = new URL(url);
+      url = urlObj.pathname;
+    } catch (e) {
+      console.error('Failed to parse URL:', e);
+    }
+  }
+
+  // Remove any leading /storage/ or storage/
+  url = url.replace(/^\/?(storage\/)?/, '');
   
-  // If it's already a direct access URL, return it as is
-  if (url.includes('/direct-access/')) {
-    return url;
+  // Clean and normalize the path
+  return normalizePath(url);
+};
+
+/**
+ * Get a direct storage URL
+ */
+const getStorageUrl = (path: string | null, fileType: ImageFileType): string | null => {
+  if (!path) return null;
+  
+  // Extract the relative path
+  let cleanPath = extractRelativePath(path);
+
+  // If the path doesn't include the directory, add it based on fileType
+  if (!cleanPath.includes('/')) {
+    const storageDir = fileType === 'motorcycles' ? 'motorcycle_images' : fileType;
+    cleanPath = `${storageDir}/${cleanPath}`;
+  }
+
+  return `${backendBaseUrl}/storage/${cleanPath}`;
+};
+
+/**
+ * Get a URL that uses serve-image.php to serve the image
+ */
+const getServeImageUrl = (path: string | null, fileType: ImageFileType): string | null => {
+  if (!path) return null;
+  
+  // Extract the relative path
+  let cleanPath = extractRelativePath(path);
+
+  // If the path doesn't include the directory, add it based on fileType
+  if (!cleanPath.includes('/')) {
+    const storageDir = fileType === 'motorcycles' ? 'motorcycle_images' : fileType;
+    cleanPath = `${storageDir}/${cleanPath}`;
   }
   
-  // Convert storage URL to direct access URL
-  return url.replace('/storage/', '/direct-access/');
+  return `${backendBaseUrl}/serve-image.php?path=${encodeURIComponent(cleanPath)}`;
 };
 
 /**
  * Fallback URL generator that tries multiple URL formats
- * Useful when you're not sure which format will work
  */
 export const getFallbackUrls = (
   urlField: string | null,
@@ -84,25 +84,21 @@ export const getFallbackUrls = (
 ): string[] => {
   const urls: string[] = [];
   
-  // Try the standard URL
-  const standardUrl = ensureAbsoluteUrl(urlField, pathField, fileType);
-  if (standardUrl) urls.push(standardUrl);
-  
-  // Try direct access URL
-  if (standardUrl) {
-    const directUrl = getDirectAccessUrl(standardUrl);
-    if (directUrl) urls.push(directUrl);
+  // First try: direct storage URL (now that symlink is fixed)
+  const storageUrl = getStorageUrl(pathField || urlField, fileType);
+  if (storageUrl) urls.push(storageUrl);
+
+  // Second try: serve-image.php as fallback
+  const serveUrl = getServeImageUrl(pathField || urlField, fileType);
+  if (serveUrl) urls.push(serveUrl);
+
+  // If urlField is an absolute URL and different from what we generated, add it
+  if (urlField && urlField.startsWith('http') && !urls.includes(urlField)) {
+    urls.push(urlField);
   }
-  
-  // Try a serve-image.php URL if both above approaches fail
-  if (pathField) {
-    // Convert the path to a format suitable for serve-image.php
-    const serveParam = pathField.startsWith(`${fileType}/`) 
-      ? pathField 
-      : `${fileType}/${pathField}`;
-    
-    urls.push(`${backendBaseUrl}/serve-image.php?path=${encodeURIComponent(serveParam)}`);
-  }
-  
-  return urls;
-}; 
+
+  // Remove duplicates and empty values
+  return urls
+    .filter(Boolean)
+    .filter((url, index, self) => self.indexOf(url) === index);
+};

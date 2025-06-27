@@ -176,6 +176,7 @@ const MobileField: React.FC<MobileFieldProps> = ({ label, value, name, onChange 
 
 const Step4EmploymentPayment: React.FC<Step4Props> = ({ app, onUpdate }) => {
     // Helper function to ensure consistent string value
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ensureString = (value: any): string => {
         // If value is null, undefined, or the string "null", return empty string
         if (value === null || value === undefined || value === 'null') return '';
@@ -278,6 +279,7 @@ const Step4EmploymentPayment: React.FC<Step4Props> = ({ app, onUpdate }) => {
             } else {
                 throw new Error(response.data.message || 'Failed to save changes');
             }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error('Error saving changes:', error);
             

@@ -159,13 +159,10 @@ function Profiles2() {
                         <div className="mt-2">
                           <label className="block font-medium mb-2">Profile Picture</label>
                           <div className="flex gap-2">
-                              <label className="bg-gray-300 text-dark px-4 py-2 rounded cursor-pointer">
-                                  <i className="bi bi-upload"></i>
-                                  <span className="px-2">Upload</span>
+                              <label className="bg-gray-100">
                                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                               </label>
-                              <button type="button" className="bg-gray-300 px-4 py-2 rounded" onClick={handleRemoveImage}>
-                                  <i className="bi bi-trash-fill"></i>
+                              <button type="button" className="bg-gray-100" onClick={handleRemoveImage}>
                               </button>
                           </div>
                         </div>

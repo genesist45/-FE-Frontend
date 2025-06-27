@@ -142,6 +142,7 @@ const AdminMotorcycleForm: React.FC = () => {
         await addMotorcycle(formData);
       }
       navigate('/admin/motorcycles');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const message = err.response?.data?.message || 
                      (err.response?.data?.errors ? 
